@@ -1,7 +1,7 @@
 export type PaymentDetails = {
   clientCorrelator: string | null;
   referenceCode: string | null;
-  tranType: string;
+  tranType: 'REF' | 'MER';
   endUserId: string | null;
   originalEcocashReference?: string | null;
   remark: string | null;
