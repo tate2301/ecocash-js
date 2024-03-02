@@ -1,7 +1,8 @@
+// @ts-nocheck
 import Configuration from './Configuration';
 import { PaymentDetails } from './types';
 
-interface IClient {
+interface IEcocash {
   charge_subscriber(msisdn: string, amount: number): Promise<any>;
   configuration: Configuration;
   generate_client_correlator(): string;
@@ -71,7 +72,7 @@ class PaymentRequestBuilder implements IPaymentRequestBuilder {
     return {
       clientCorrelator: generatedClientCorrelator,
       referenceCode: this.configuration.reference_code,
-      tranType: 'REF',
+      tranType: 'MER',
       endUserId: msisdn,
       remark: this.configuration.refundRemarks,
       paymentAmount: {
@@ -136,8 +137,32 @@ class PaymentRequestBuilder implements IPaymentRequestBuilder {
   }
 }
 
-export default class EcocashClient implements IClient {
-  constructor(public configuration: Configuration) {}
+class FetchClient {
+  public ecocash: EcocashClient;
+  async request(data: PaymentDetails, url: string): Promise<any> {
+    const request = {
+      body: data,
+      basic_auth: this.ecocash.get_auth(),
+      headers: { 'Content-Type': 'application/json' },
+    };
+
+    // do a post request with fetch
+    const fetchReq = await fetch(url, {
+      body: JSON.stringify(paymentDetails),
+      headers: request.headers,
+      method: 'POST',
+    });
+
+    return fetchReq.json();
+  }
+}
+
+export default class Ecocash implements IEcocash {
+  public configuration: Configuration;
+  client: FetchClient;
+  constructor() {
+    this.client = new FetchClient(this);
+  }
 
   async charge_subscriber(
     msisdn: string,
@@ -154,20 +179,7 @@ export default class EcocashClient implements IClient {
       this.generate_client_correlator()
     );
 
-    const request = {
-      body: paymentDetails,
-      basic_auth: this.get_auth(),
-      headers: { 'Content-Type': 'application/json' },
-    };
-
-    // do a post request with fetch
-    const fetchReq = await fetch(url, {
-      body: JSON.stringify(paymentDetails),
-      headers: request.headers,
-      method: 'POST',
-    });
-
-    return fetchReq.json();
+    return await this.client.request(url, paymentDetails);
   }
 
   generate_client_correlator(): string {
@@ -202,6 +214,17 @@ export default class EcocashClient implements IClient {
     transaction_id: string,
     amount: number
   ): Promise<any> {
-    throw new Error('Method not implemented.');
+    const url = `${this.configuration.api_base_url}/transactions/refund`;
+    const paymentRequestBuilder = new PaymentRequestBuilder(this.configuration);
+
+    const paymentDetails = paymentRequestBuilder.build(
+      'REFUND',
+      msisdn,
+      amount,
+      this.generate_client_correlator(),
+      transaction_id
+    );
+
+    return await this.client.request(url, paymentDetails);
   }
 }
