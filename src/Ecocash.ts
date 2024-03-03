@@ -1,7 +1,6 @@
-// @ts-nocheck
 import Configuration from './Configuration';
-import { PaymentDetails } from './types';
 import FetchClient from './FetchClient';
+import PaymentRequestBuilder from './PaymentRequestBuilder';
 
 interface IEcocash {
   charge_subscriber(msisdn: string, amount: number): Promise<any>;
@@ -20,16 +19,15 @@ interface IEcocash {
 }
 
 export default class Ecocash implements IEcocash {
-  public configuration: Configuration;
   client: FetchClient;
-  constructor() {
+  constructor(public configuration: Configuration) {
     this.client = new FetchClient(this);
   }
 
   async charge_subscriber(
     msisdn: string,
     amount: number,
-    remarks?: string
+    _remarks?: string
   ): Promise<any> {
     const url = `${this.configuration.api_base_url}/transactions/amount`;
     const paymentRequestBuilder = new PaymentRequestBuilder(this.configuration);
@@ -41,11 +39,20 @@ export default class Ecocash implements IEcocash {
       this.generate_client_correlator()
     );
 
-    return await this.client.request(url, paymentDetails);
+    return await this.client.post(url, paymentDetails);
   }
 
   generate_client_correlator(): string {
-    return `${this.configuration.clientCorrelatorPrefix}${new Date().getUTCDate()}${new Date().getUTCMonth() + 1}${new Date().getUTCFullYear()}${new Date().getUTCHours()}${new Date().getUTCMinutes()}${new Date().getUTCSeconds()}${new Date().getUTCMilliseconds()}000`;
+    let val = `${this.configuration.clientCorrelatorPrefix}`;
+    val += new Date().getUTCDate();
+    val += new Date().getUTCMonth() + 1;
+    val += new Date().getUTCFullYear();
+    val += new Date().getUTCHours();
+    val += new Date().getUTCMinutes();
+    val += new Date().getUTCSeconds();
+    val += new Date().getUTCMilliseconds();
+    val += '000';
+    return val;
   }
 
   get_auth_creds(): {
@@ -58,20 +65,20 @@ export default class Ecocash implements IEcocash {
     };
   }
 
-  get_transaction_status(
-    msisdn: string,
-    client_correlator: string
+  async get_transaction_status(
+    _msisdn: string,
+    _client_correlator: string
   ): Promise<any> {
-    const url = `${this.configuration.api_base_url}/#{msisdn}/transactions/amount/#{client_correlator}`;
-
-    return url;
+    const url = `${this.configuration.api_base_url}/${_msisdn}/transactions/amount/${_client_correlator}`;
+    return this.client.get(url);
   }
 
-  list_transactions(msisdn: string): Promise<any> {
-    throw new Error('Method not implemented.');
+  async list_transactions(_msisdn: string): Promise<any> {
+    const url = `${this.configuration.api_base_url}/${_msisdn}/transactions`;
+    return this.client.get(url);
   }
 
-  reverse_transaction(
+  async reverse_transaction(
     msisdn: string,
     transaction_id: string,
     amount: number
@@ -87,6 +94,6 @@ export default class Ecocash implements IEcocash {
       transaction_id
     );
 
-    return await this.client.request(url, paymentDetails);
+    return await this.client.post(url, paymentDetails);
   }
 }

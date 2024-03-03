@@ -8,7 +8,21 @@ export default class FetchClient {
     this.ecocash = ecocash;
   }
 
-  async request(data: PaymentDetails, url: string): Promise<any> {
+  async get(url: string): Promise<any> {
+    const request = {
+      basic_auth: this.ecocash.get_auth_creds(),
+      headers: { 'Content-Type': 'application/json' },
+    };
+
+    const fetchReq = await fetch(url, {
+      headers: request.headers,
+      method: 'GET',
+    });
+
+    return fetchReq.json();
+  }
+
+  async post(url: string, data: PaymentDetails): Promise<any> {
     const request = {
       body: data,
       basic_auth: this.ecocash.get_auth_creds(),
