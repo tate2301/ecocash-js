@@ -24,7 +24,6 @@ export interface IPaymentRequestBuilder {
 
 export default class PaymentRequestBuilder implements IPaymentRequestBuilder {
   constructor(public configuration: Configuration) {}
-
   build(
     action: 'CHARGE' | 'REFUND',
     msisdn: string,
