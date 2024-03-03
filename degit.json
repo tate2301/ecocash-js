@@ -1,6 +1,0 @@
-[
-  {
-    "action": "remove",
-    "files": ["LICENSE.md", ".github/FUNDING.yml"]
-  }
-]
